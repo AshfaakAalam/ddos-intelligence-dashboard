@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+
+    <meta charset="UTF-8">
+
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0"
+    >
+
+    <title>DDoS Intelligence Dashboard</title>
+
+    <link
+        rel="stylesheet"
+        href="/static/css/style.css"
+    >
+
+</head>
+
+<body>
+
+    <nav class="navbar">
+
+        <div class="logo">
+            🛡 DDoS Intelligence
+        </div>
+
+        <div class="nav-right">
+
+            <span id="username"></span>
+
+            <a href="/logout">
+                Logout
+            </a>
+
+        </div>
+
+    </nav>
+
+
+    <main class="dashboard">
+
+        <section class="dashboard-header">
+
+            <div>
+
+                <h1>
+                    Global Threat Overview
+                </h1>
+
+                <p>
+                    Monitor recent DDoS attack activity.
+                </p>
+
+            </div>
+
+        </section>
+
+
+        <section class="stats">
+
+            <div class="stat-card">
+
+                <h3>
+                    Attack Sources
+                </h3>
+
+                <p id="source-country-count">
+                    --
+                </p>
+
+            </div>
+
+
+            <div class="stat-card">
+
+                <h3>
+                    Target Countries
+                </h3>
+
+                <p id="target-country-count">
+                    --
+                </p>
+
+            </div>
+
+
+            <div class="stat-card">
+
+                <h3>
+                    Last Updated
+                </h3>
+
+                <p id="last-updated">
+                    --
+                </p>
+
+            </div>
+
+        </section>
+
+
+        <section class="panel">
+
+            <h2>
+                Attack Distribution
+            </h2>
+
+            <div id="attack-list">
+                Loading attack data...
+            </div>
+
+        </section>
+
+
+    </main>
+
+
+    <script src="/static/js/dashboard.js"></script>
+
+</body>
+
+</html>
