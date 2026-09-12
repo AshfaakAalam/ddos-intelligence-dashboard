@@ -1,19 +1,25 @@
+# to run the app, use the command: uvicorn main:app --reload
+
+
+# This is for testing the API endpoints using FastAPI's TestClient
 from fastapi import FastAPI, Request
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
+from urllib3 import request
 
+# import the necessary modules and functions from other files
 from cloudflare import get_attack_data
 from processor import process_attack_data
 
-
+# import the necessary modules for database and user authentication
 from fastapi import Form
 from fastapi.responses import RedirectResponse
 from starlette.middleware.sessions import SessionMiddleware
-
 from database import SessionLocal, User
 from werkzeug.security import generate_password_hash, check_password_hash
 
 from datetime import datetime, timezone
+
 
 app = FastAPI()
 app.add_middleware(
@@ -45,6 +51,7 @@ def register_page(request: Request):
 
 @app.post("/register")
 def register(
+    request: Request,
     username: str = Form(...),
     email: str = Form(...),
     password: str = Form(...)
@@ -60,9 +67,29 @@ def register(
 
         database.close()
 
-        return {
-            "message": "Username already exists"
-        }
+        return templates.TemplateResponse(
+            request=request,
+            name="register.html",
+            context={
+                "error": "Username already exists"
+            }
+        )
+
+    existing_email = database.query(User).filter(
+        User.email == email
+    ).first()
+
+    if existing_email:
+
+        database.close()
+
+        return templates.TemplateResponse(
+            request=request,
+            name="register.html",
+            context={
+                "error": "Email is already registered"
+            }
+        )
 
     password_hash = generate_password_hash(password)
 
@@ -108,9 +135,13 @@ def login(
 
         database.close()
 
-        return {
-            "message": "Invalid username or password"
-        }
+        return templates.TemplateResponse(
+            request=request,
+            name="login.html",
+            context={
+                "error": "Invalid username or password"
+            }
+    )
 
     password_correct = check_password_hash(
         user.password_hash,
@@ -121,9 +152,13 @@ def login(
 
         database.close()
 
-        return {
-            "message": "Invalid username or password"
-        }
+        return templates.TemplateResponse(
+            request=request,
+            name="login.html",
+            context={
+                "error": "Invalid username or password"
+            }
+         )
 
     request.session["user_id"] = user.id
     request.session["username"] = user.username

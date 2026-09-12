@@ -7,13 +7,16 @@
 
 body {
     font-family: Arial, sans-serif;
-    background: #0b0f14;
+
+    background: #080c11;
+
     color: #e6edf3;
 }
 
 
 .navbar {
     height: 70px;
+
     padding: 0 40px;
 
     display: flex;
@@ -21,6 +24,8 @@ body {
     justify-content: space-between;
 
     border-bottom: 1px solid #202833;
+
+    background: #0b1016;
 }
 
 
@@ -32,31 +37,42 @@ body {
 
 .nav-right {
     display: flex;
-    gap: 25px;
     align-items: center;
+
+    gap: 25px;
+
+    color: #8b949e;
 }
 
 
 .nav-right a {
     color: #e6edf3;
+
     text-decoration: none;
 }
 
 
 .dashboard {
-    max-width: 1400px;
+    max-width: 1500px;
+
     margin: auto;
+
     padding: 40px;
 }
 
 
 .dashboard-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+
     margin-bottom: 30px;
 }
 
 
 .dashboard-header h1 {
     font-size: 32px;
+
     margin-bottom: 8px;
 }
 
@@ -66,58 +82,751 @@ body {
 }
 
 
+.update-status {
+    color: #8b949e;
+
+    font-size: 14px;
+}
+
+
+/* Statistics */
+
 .stats {
     display: grid;
+
     grid-template-columns: repeat(3, 1fr);
+
     gap: 20px;
-    margin-bottom: 30px;
+
+    margin-bottom: 25px;
 }
 
 
 .stat-card {
-    background: #111820;
+    background: #0f151c;
+
     border: 1px solid #202833;
+
     border-radius: 12px;
+
     padding: 25px;
 }
 
 
-.stat-card h3 {
+.stat-label {
+    display: block;
+
     color: #8b949e;
-    font-size: 14px;
-    margin-bottom: 15px;
+
+    font-size: 12px;
+
+    margin-bottom: 12px;
 }
 
 
-.stat-card p {
-    font-size: 28px;
+.stat-value {
+    font-size: 32px;
+
     font-weight: bold;
 }
 
 
+/* Panels */
+
 .panel {
-    background: #111820;
+    background: #0f151c;
+
     border: 1px solid #202833;
+
     border-radius: 12px;
+
     padding: 25px;
+
+    margin-bottom: 25px;
 }
 
 
-.panel h2 {
+.panel-header {
     margin-bottom: 20px;
 }
 
 
+.panel-header h2 {
+    margin-bottom: 5px;
+}
+
+
+.panel-header p {
+    color: #8b949e;
+
+    font-size: 14px;
+}
+
+
+/* Map */
+
+#attack-map {
+    width: 100%;
+
+    height: 550px;
+
+    border-radius: 8px;
+}
+
+
+/* Attack rows */
+
 .attack-row {
     display: grid;
-    grid-template-columns: 60px 1fr 40px 1fr 100px;
 
-    padding: 15px 10px;
+    grid-template-columns:
+        60px
+        1fr
+        40px
+        1fr
+        100px;
+
+    align-items: center;
+
+    padding: 16px 10px;
 
     border-bottom: 1px solid #202833;
 }
 
 
-.attack-row strong {
+.attack-row:last-child {
+    border-bottom: none;
+}
+
+
+.attack-rank {
+    color: #8b949e;
+}
+
+
+.attack-country {
+    font-weight: 500;
+}
+
+
+.attack-arrow {
+    text-align: center;
+
+    color: #8b949e;
+}
+
+
+.attack-percentage {
     text-align: right;
+
+    font-weight: bold;
+}
+
+
+/* Mobile */
+
+@media (max-width: 800px) {
+
+    .dashboard {
+        padding: 20px;
+    }
+
+    .stats {
+        grid-template-columns: 1fr;
+    }
+
+    .dashboard-header {
+        flex-direction: column;
+
+        align-items: flex-start;
+
+        gap: 15px;
+    }
+
+    .navbar {
+        padding: 0 20px;
+    }
+
+    .attack-row {
+        grid-template-columns:
+            40px
+            1fr
+            30px
+            1fr
+            70px;
+
+        font-size: 13px;
+    }
+
+
+}
+/* ================================
+   MAP DARK OVERLAY
+   ================================ */
+
+#attack-map {
+    background: #080c11;
+}
+
+
+/* ================================
+   LEAFLET CONTROLS
+   ================================ */
+
+.leaflet-control-zoom a {
+    background: #0f151c !important;
+    color: #e6edf3 !important;
+    border-color: #202833 !important;
+}
+
+
+.leaflet-control-attribution {
+    background: rgba(8, 12, 17, 0.8) !important;
+    color: #8b949e !important;
+}
+
+
+.leaflet-control-attribution a {
+    color: #8b949e !important;
+}
+
+
+/* ================================
+   POPUP
+   ================================ */
+
+.leaflet-popup-content-wrapper,
+.leaflet-popup-tip {
+    background: #0f151c;
+    color: #e6edf3;
+}
+
+
+.leaflet-popup-content {
+    margin: 15px;
+}
+
+
+/* ================================
+   ATTACK ARC
+   ================================ */
+
+.attack-arc {
+    stroke-linecap: round;
+    stroke-dasharray: 10 8;
+    animation: attackFlow 1.5s linear infinite;
+}
+
+
+@keyframes attackFlow {
+
+    from {
+        stroke-dashoffset: 0;
+    }
+
+    to {
+        stroke-dashoffset: -36;
+    }
+
+}
+
+/* REFRESH BUTTON */
+#refresh-button {
+
+    background: #0f151c;
+
+    color: #e6edf3;
+
+    border: 1px solid #202833;
+
+    border-radius: 8px;
+
+    padding: 10px 16px;
+
+    cursor: pointer;
+
+    font-size: 14px;
+
+}
+
+
+#refresh-button:hover {
+
+    background: #161e27;
+
+}
+
+/* ================================
+   MAP LEGEND
+   ================================ */
+
+.map-legend {
+
+    display: flex;
+
+    align-items: center;
+
+    gap: 25px;
+
+    margin-top: 15px;
+
+    padding: 10px 5px;
+
+    color: #8b949e;
+
+    font-size: 13px;
+}
+
+
+.legend-item {
+
+    display: flex;
+
+    align-items: center;
+
+    gap: 8px;
+
+}
+
+
+.legend-source,
+.legend-target {
+
+    width: 10px;
+
+    height: 10px;
+
+    border-radius: 50%;
+
+    display: inline-block;
+
+}
+
+
+.legend-source {
+
+    background: #ff3131;
+
+}
+
+
+.legend-target {
+
+    background: #ffb000;
+
+}
+
+
+.legend-line {
+
+    width: 25px;
+
+    height: 3px;
+
+    background: #ff3131;
+
+    display: inline-block;
+
+    border-radius: 2px;
+
+}
+
+.attack-row {
+    cursor: pointer;
+
+    transition:
+        background 0.2s ease;
+}
+
+
+.attack-row:hover {
+    background: #161e27;
+}
+
+/* ================================
+   LOGIN PAGE
+   ================================ */
+
+.login-page {
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 30px;
+
+    background: #080c11;
+}
+
+
+/* Login card */
+
+.login-card {
+    width: 420px;
+    padding: 40px;
+
+    background: #0f151c;
+
+    border: 1px solid #202833;
+    border-radius: 12px;
+
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.4);
+}
+
+
+/* Logo */
+
+.login-logo {
+    width: 55px;
+    height: 55px;
+
+    margin: 0 auto 20px;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    background: #161e27;
+
+    border: 1px solid #303a46;
+    border-radius: 10px;
+
+    color: #ff3131;
+
+    font-size: 26px;
+}
+
+
+/* Heading */
+
+.login-card h1 {
+    text-align: center;
+    font-size: 28px;
+    margin-bottom: 8px;
+}
+
+.login-subtitle {
+    text-align: center;
+    color: #8b949e;
+    font-size: 14px;
+    margin-bottom: 30px;
+}
+
+
+/* Form */
+
+.form-group {
+    margin-bottom: 20px;
+}
+
+.form-group label {
+    display: block;
+
+    margin-bottom: 8px;
+
+    color: #e6edf3;
+
+    font-size: 13px;
+}
+
+.form-group input {
+    width: 100%;
+
+    padding: 13px 14px;
+
+    background: #080c11;
+
+    border: 1px solid #202833;
+    border-radius: 8px;
+
+    color: #e6edf3;
+
+    font-size: 14px;
+
+    outline: none;
+}
+
+.form-group input::placeholder {
+    color: #59636f;
+}
+
+.form-group input:focus {
+    border-color: #ff3131;
+
+    box-shadow: 0 0 0 2px rgba(255, 49, 49, 0.1);
+}
+
+
+/* Options */
+
+.login-options {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+
+    margin-bottom: 25px;
+
+    font-size: 12px;
+}
+
+.login-options a {
+    color: #ff3131;
+    text-decoration: none;
+}
+
+.remember-me {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+
+    color: #8b949e;
+}
+
+
+/* Button */
+
+.login-button {
+    width: 100%;
+
+    padding: 13px;
+
+    background: #ff3131;
+
+    border: none;
+    border-radius: 8px;
+
+    color: white;
+
+    font-size: 14px;
+    font-weight: bold;
+
+    cursor: pointer;
+}
+
+.login-button:hover {
+    background: #e52c2c;
+}
+
+
+/* Divider */
+
+.login-divider {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+
+    margin: 25px 0;
+
+    color: #59636f;
+
+    font-size: 10px;
+}
+
+.login-divider::before,
+.login-divider::after {
+    content: "";
+
+    flex: 1;
+
+    height: 1px;
+
+    background: #202833;
+}
+
+
+/* Register */
+
+.register-link {
+    text-align: center;
+
+    color: #8b949e;
+
+    font-size: 13px;
+}
+
+.register-link a {
+    color: #ff3131;
+
+    text-decoration: none;
+}
+
+
+/* Security */
+
+.secure-login {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    gap: 7px;
+
+    margin-top: 25px;
+
+    color: #59636f;
+
+    font-size: 11px;
+}
+
+.secure-dot {
+    width: 6px;
+    height: 6px;
+
+    border-radius: 50%;
+
+    background: #36d399;
+
+    box-shadow: 0 0 7px rgba(54, 211, 153, 0.7);
+}
+
+
+/* Mobile */
+
+@media (max-width: 500px) {
+
+    .login-card {
+        width: 100%;
+        padding: 30px 24px;
+    }
+
+}
+
+/* Login Error */
+
+.login-error {
+    margin-bottom: 20px;
+    padding: 12px 14px;
+
+    background: rgba(255, 49, 49, 0.08);
+
+    border: 1px solid rgba(255, 49, 49, 0.3);
+
+    border-radius: 8px;
+
+    color: #ff5c5c;
+
+    font-size: 13px;
+
+    text-align: center;
+}
+
+
+
+/* ================================
+   DASHBOARD NAVIGATION
+   ================================ */
+
+.nav-right a {
+    color: #e6edf3;
+    text-decoration: none;
+    transition: 0.2s ease;
+}
+
+.nav-right a:hover {
+    color: #ff3131;
+}
+
+.nav-user {
+    color: #8b949e;
+}
+
+.logout-link {
+    color: #ff4a4a !important;
+}
+
+
+/* ================================
+   DASHBOARD ACTIONS
+   ================================ */
+
+.dashboard-actions {
+    display: flex;
+    align-items: center;
+    gap: 20px;
+}
+
+
+/* ================================
+   REFRESH BUTTON
+   ================================ */
+
+#refresh-button {
+    background: #0f151c;
+    color: #e6edf3;
+
+    border: 1px solid #202833;
+    border-radius: 8px;
+
+    padding: 10px 16px;
+
+    cursor: pointer;
+
+    font-size: 14px;
+
+    transition: 0.2s ease;
+}
+
+#refresh-button:hover {
+    background: #161e27;
+    border-color: #303b48;
+}
+
+#refresh-button:active {
+    transform: scale(0.97);
+}
+
+
+/* ================================
+   STATISTICS CARDS
+   ================================ */
+
+.stat-card {
+    transition: 0.2s ease;
+}
+
+.stat-card:hover {
+    border-color: #303b48;
+    transform: translateY(-2px);
+}
+
+.stat-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.stat-icon {
+    width: 30px;
+    height: 30px;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    border-radius: 7px;
+
+    font-size: 15px;
+}
+
+.source-icon {
+    color: #ff3131;
+    background: rgba(255, 49, 49, 0.08);
+}
+
+.target-icon {
+    color: #ffb000;
+    background: rgba(255, 176, 0, 0.08);
+}
+
+.attack-icon {
+    color: #e6edf3;
+    background: rgba(230, 237, 243, 0.06);
+}
+
+.stat-description {
+    display: block;
+
+    margin-top: 7px;
+
+    color: #59636f;
+
+    font-size: 12px;
 }

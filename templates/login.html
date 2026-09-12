@@ -2,48 +2,128 @@
 <html lang="en">
 
 <head>
-
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-    <title>Login</title>
+    <title>Login | DDoS Intelligence</title>
 
     <link rel="stylesheet" href="/static/css/style.css">
-
 </head>
 
 <body>
 
-    <main>
+    <main class="login-page">
 
-        <h1>Login</h1>
+        <div class="login-card">
 
-        <form action="/login" method="post">
+            <div class="login-logo">
+                ◈
+            </div>
 
-            <input
-                type="text"
-                name="username"
-                placeholder="Username"
-                required
-            >
+            <h1>Welcome Back</h1>
 
-            <input
-                type="password"
-                name="password"
-                placeholder="Password"
-                required
-            >
+            <p class="login-subtitle">
+                Sign in to access DDoS Intelligence
+            </p>
 
-            <button type="submit">
-                Login
-            </button>
+            {% if error %}
+                <div class="login-error">
+                    {{ error }}
+                </div>
+            {% endif %}
 
-        </form>
+            <form method="POST" action="/login">
 
-        <p>
-            Don't have an account?
-            <a href="/register">Create account</a>
-        </p>
+                <div class="form-group">
+
+                    <label for="username">
+                        Username
+                    </label>
+
+                    <input
+                        type="text"
+                        id="username"
+                        name="username"
+                        placeholder="Enter your username"
+                        required
+                    >
+
+                </div>
+
+
+                <div class="form-group">
+
+                    <label for="password">
+                        Password
+                    </label>
+
+                    <input
+                        type="password"
+                        id="password"
+                        name="password"
+                        placeholder="Enter your password"
+                        required
+                    >
+
+                </div>
+
+
+                <div class="login-options">
+
+                    <label class="remember-me">
+
+                        <input
+                            type="checkbox"
+                            name="remember"
+                        >
+
+                        <span>Remember me</span>
+
+                    </label>
+
+
+                    <a href="#">
+                        Forgot password?
+                    </a>
+
+                </div>
+
+
+                <button
+                    type="submit"
+                    class="login-button"
+                >
+                    Sign In
+                </button>
+
+            </form>
+
+
+            <div class="login-divider">
+                <span>OR</span>
+            </div>
+
+
+            <p class="register-link">
+
+                Don't have an account?
+
+                <a href="/register">
+                    Create an account
+                </a>
+
+            </p>
+
+
+            <div class="secure-login">
+
+                <span class="secure-dot"></span>
+
+                Secure authentication
+
+            </div>
+
+        </div>
 
     </main>
 

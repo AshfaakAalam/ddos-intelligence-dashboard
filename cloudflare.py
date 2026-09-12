@@ -30,5 +30,11 @@ def get_attack_data():
 }
     response = requests.get(url , headers=headers, params=params) 
 
-    response.raise_for_status()  # Raise an exception for HTTP errors
+    if not response.ok:
+        print("Cloudflare response:")
+        print(response.text)
+
+    response.raise_for_status()
+
     return response.json()
+

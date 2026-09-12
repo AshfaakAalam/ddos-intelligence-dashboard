@@ -10,16 +10,26 @@
         content="width=device-width, initial-scale=1.0"
     >
 
-    <title>DDoS Intelligence Dashboard</title>
+    <title>DDoS Intelligence</title>
 
     <link
         rel="stylesheet"
         href="/static/css/style.css"
     >
 
+    <!-- Leaflet -->
+    <link
+        rel="stylesheet"
+        href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+    >
+
 </head>
 
 <body>
+
+    <!-- ================================
+         NAVBAR
+         ================================ -->
 
     <nav class="navbar">
 
@@ -29,9 +39,15 @@
 
         <div class="nav-right">
 
-            <span id="username"></span>
+            <a href="/dashboard">
+                Dashboard
+            </a>
 
-            <a href="/logout">
+            <span class="nav-user">
+                Welcome, {{ request.session.username }}
+            </span>
+
+            <a href="/logout" class="logout-link">
                 Logout
             </a>
 
@@ -40,7 +56,13 @@
     </nav>
 
 
+    <!-- ================================
+         DASHBOARD
+         ================================ -->
+
     <main class="dashboard">
+
+        <!-- Header -->
 
         <section class="dashboard-header">
 
@@ -51,73 +73,235 @@
                 </h1>
 
                 <p>
-                    Monitor recent DDoS attack activity.
+                    Monitor DDoS attack activity across the globe.
                 </p>
+
+            </div>
+
+            <div class="dashboard-actions">
+
+                <div class="update-status">
+
+                    Last update:
+                    <span id="last-updated">--</span>
+
+                </div>
+
+                <button
+                    id="refresh-button"
+                    onclick="loadAttackData()"
+                >
+                    ↻ Refresh
+                </button>
 
             </div>
 
         </section>
 
 
-        <section class="stats">
+        <!-- ================================
+             STATISTICS
+             ================================ -->
+
+       <section class="stats">
+
+    <div class="stat-card">
+
+        <div class="stat-top">
+            <span class="stat-label">
+                SOURCE COUNTRIES
+            </span>
+
+            <span class="stat-icon source-icon">
+                ↗
+            </span>
+        </div>
+
+        <span
+            class="stat-value"
+            id="source-country-count"
+        >
+            --
+        </span>
+
+        <span class="stat-description">
+            Countries generating attacks
+        </span>
+
+    </div>
+
+
+    <div class="stat-card">
+
+        <div class="stat-top">
+            <span class="stat-label">
+                TARGET COUNTRIES
+            </span>
+
+            <span class="stat-icon target-icon">
+                ↘
+            </span>
+        </div>
+
+        <span
+            class="stat-value"
+            id="target-country-count"
+        >
+            --
+        </span>
+
+        <span class="stat-description">
+            Countries under attack
+        </span>
+
+    </div>
+
+
+    <div class="stat-card">
+
+        <div class="stat-top">
+            <span class="stat-label">
+                ATTACK RECORDS
+            </span>
+
+            <span class="stat-icon attack-icon">
+                ⚡
+            </span>
+        </div>
+
+        <span
+            class="stat-value"
+            id="attack-count"
+        >
+            --
+        </span>
+
+        <span class="stat-description">
+            Recorded attack events
+        </span>
+
+    </div>
+
+</section>
+
 
             <div class="stat-card">
 
-                <h3>
-                    Attack Sources
-                </h3>
+                <span class="stat-label">
+                    ATTACK RECORDS
+                </span>
 
-                <p id="source-country-count">
+                <span
+                    class="stat-value"
+                    id="attack-count"
+                >
                     --
-                </p>
-
-            </div>
-
-
-            <div class="stat-card">
-
-                <h3>
-                    Target Countries
-                </h3>
-
-                <p id="target-country-count">
-                    --
-                </p>
-
-            </div>
-
-
-            <div class="stat-card">
-
-                <h3>
-                    Last Updated
-                </h3>
-
-                <p id="last-updated">
-                    --
-                </p>
+                </span>
 
             </div>
 
         </section>
 
+
+        <!-- ================================
+             GLOBAL ATTACK MAP
+             ================================ -->
 
         <section class="panel">
 
-            <h2>
-                Attack Distribution
-            </h2>
+            <div class="panel-header">
 
-            <div id="attack-list">
-                Loading attack data...
+                <div>
+
+                    <h2>
+                        Global Attack Activity
+                    </h2>
+
+                    <p>
+                        Source → Target
+                    </p>
+
+                </div>
+
+            </div>
+
+            <div id="attack-map"></div>
+
+            <!-- Map Legend -->
+
+            <div class="map-legend">
+
+                <div class="legend-item">
+
+                    <span class="legend-source"></span>
+
+                    Attack Source
+
+                </div>
+
+
+                <div class="legend-item">
+
+                    <span class="legend-target"></span>
+
+                    Attack Target
+
+                </div>
+
+
+                <div class="legend-item">
+
+                    <span class="legend-line"></span>
+
+                    Attack Path
+
+                </div>
+
             </div>
 
         </section>
 
+
+        <!-- ================================
+             RECENT ATTACKS
+             ================================ -->
+
+        <section class="panel">
+
+            <div class="panel-header">
+
+                <h2>
+                    Recent Attacks
+                </h2>
+
+                <p>
+                    Top attack source → target pairs
+                </p>
+
+            </div>
+
+            <div id="attack-list"></div>
+
+        </section>
 
     </main>
 
 
+    <!-- ================================
+         JAVASCRIPT
+         ================================ -->
+
+    <!-- Leaflet -->
+    <script
+        src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js">
+    </script>
+
+    <!-- Leaflet Polyline Decorator -->
+    <script
+        src="https://cdn.jsdelivr.net/npm/leaflet-polylinedecorator@1.6.0/dist/leaflet.polylineDecorator.js">
+    </script>
+
+    <!-- Dashboard -->
     <script src="/static/js/dashboard.js"></script>
 
 </body>

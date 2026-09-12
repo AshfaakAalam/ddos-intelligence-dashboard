@@ -4,24 +4,87 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-    <title>DDoS Intelligence</title>
+    <title>Login | DDoS Intelligence</title>
 
-    <link rel="stylesheet" href="/static/css/style.css">
+    <link rel="stylesheet" type="text/css" href="/static/css/style.css">
 </head>
 
 <body>
 
-    <main class="landing-page">
+    <main class="login-page">
 
-        <h1>DDoS Intelligence</h1>
+        <div class="login-card">
 
-        <p>
-            Monitor and visualize global DDoS attack activity.
-        </p>
+            <h1>Welcome Back</h1>
 
-        <a href="/dashboard" class="button">
-            Enter Dashboard
-        </a>
+            <p class="login-subtitle">
+                Sign in to access DDoS Intelligence
+            </p>
+
+            {% if error %}
+                    <div class="login-error">
+                        {{ error }}
+                    </div>
+            {% endif %}
+
+            <form method="POST" action="/login">
+
+                <div class="form-group">
+                    <label for="username">Username</label>
+
+                    <input
+                        type="text"
+                        id="username"
+                        name="username"
+                        placeholder="Enter your username"
+                        required
+                    >
+                </div>
+
+                <div class="form-group">
+                    <label for="password">Password</label>
+
+                    <input
+                        type="password"
+                        id="password"
+                        name="password"
+                        placeholder="Enter your password"
+                        required
+                    >
+                </div>
+
+                <div class="login-options">
+
+                    <label class="remember-me">
+                        <input type="checkbox" name="remember">
+                        Remember me
+                    </label>
+
+                    <a href="#">Forgot password?</a>
+
+                </div>
+
+                <button type="submit" class="login-button">
+                    Sign In
+                </button>
+
+            </form>
+
+            <div class="login-divider">
+                OR
+            </div>
+
+            <p class="register-link">
+                Don't have an account?
+                <a href="/register">Create an account</a>
+            </p>
+
+            <div class="secure-login">
+                <span class="secure-dot"></span>
+                Secure authentication
+            </div>
+
+        </div>
 
     </main>
 
