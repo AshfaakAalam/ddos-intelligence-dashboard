@@ -1,309 +1,88 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
-
 <head>
-
-    <meta charset="UTF-8">
-
-    <meta
-        name="viewport"
-        content="width=device-width, initial-scale=1.0"
-    >
-
-    <title>DDoS Intelligence</title>
-
-    <link
-        rel="stylesheet"
-        href="/static/css/style.css"
-    >
-
-    <!-- Leaflet -->
-    <link
-        rel="stylesheet"
-        href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
-    >
-
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#080c11">
+  <title>DDoS Intelligence | Global Threat Overview</title>
+  <link rel="stylesheet" href="/static/css/style.css">
 </head>
-
 <body>
-
-    <!-- ================================
-         NAVBAR
-         ================================ -->
-
-    <nav class="navbar">
-
-        <div class="logo">
-            🛡 DDoS Intelligence
-        </div>
-
-        <div class="nav-right">
-
-            <a href="/dashboard">
-                Dashboard
-            </a>
-
-            <span class="nav-user">
-                Welcome, {{ request.session.username }}
-            </span>
-
-            <a href="/logout" class="logout-link">
-                Logout
-            </a>
-
-        </div>
-
-    </nav>
-
-
-    <!-- ================================
-         DASHBOARD
-         ================================ -->
-
-    <main class="dashboard">
-
-        <!-- Header -->
-
-        <section class="dashboard-header">
-
-            <div>
-
-                <h1>
-                    Global Threat Overview
-                </h1>
-
-                <p>
-                    Monitor DDoS attack activity across the globe.
-                </p>
-
-            </div>
-
-            <div class="dashboard-actions">
-
-                <div class="update-status">
-
-                    Last update:
-                    <span id="last-updated">--</span>
-
-                </div>
-
-                <button
-                    id="refresh-button"
-                    onclick="loadAttackData()"
-                >
-                    ↻ Refresh
-                </button>
-
-            </div>
-
-        </section>
-
-
-        <!-- ================================
-             STATISTICS
-             ================================ -->
-
-       <section class="stats">
-
-    <div class="stat-card">
-
-        <div class="stat-top">
-            <span class="stat-label">
-                SOURCE COUNTRIES
-            </span>
-
-            <span class="stat-icon source-icon">
-                ↗
-            </span>
-        </div>
-
-        <span
-            class="stat-value"
-            id="source-country-count"
-        >
-            --
-        </span>
-
-        <span class="stat-description">
-            Countries generating attacks
-        </span>
-
+  <nav class="navbar">
+    <a class="logo" href="/dashboard"><span class="logo-mark">◈</span> DDoS Intelligence</a>
+    <div class="nav-right">
+      <span class="nav-user">Welcome, {{ username }}</span>
+      <a class="logout-link" href="/logout">Sign out</a>
     </div>
-
-
-    <div class="stat-card">
-
-        <div class="stat-top">
-            <span class="stat-label">
-                TARGET COUNTRIES
-            </span>
-
-            <span class="stat-icon target-icon">
-                ↘
-            </span>
-        </div>
-
-        <span
-            class="stat-value"
-            id="target-country-count"
-        >
-            --
-        </span>
-
-        <span class="stat-description">
-            Countries under attack
-        </span>
-
-    </div>
-
-
-    <div class="stat-card">
-
-        <div class="stat-top">
-            <span class="stat-label">
-                ATTACK RECORDS
-            </span>
-
-            <span class="stat-icon attack-icon">
-                ⚡
-            </span>
-        </div>
-
-        <span
-            class="stat-value"
-            id="attack-count"
-        >
-            --
-        </span>
-
-        <span class="stat-description">
-            Recorded attack events
-        </span>
-
-    </div>
-
-</section>
-
-
-            <div class="stat-card">
-
-                <span class="stat-label">
-                    ATTACK RECORDS
-                </span>
-
-                <span
-                    class="stat-value"
-                    id="attack-count"
-                >
-                    --
-                </span>
-
-            </div>
-
-        </section>
-
-
-        <!-- ================================
-             GLOBAL ATTACK MAP
-             ================================ -->
-
-        <section class="panel">
-
-            <div class="panel-header">
-
-                <div>
-
-                    <h2>
-                        Global Attack Activity
-                    </h2>
-
-                    <p>
-                        Source → Target
-                    </p>
-
-                </div>
-
-            </div>
-
-            <div id="attack-map"></div>
-
-            <!-- Map Legend -->
-
-            <div class="map-legend">
-
-                <div class="legend-item">
-
-                    <span class="legend-source"></span>
-
-                    Attack Source
-
-                </div>
-
-
-                <div class="legend-item">
-
-                    <span class="legend-target"></span>
-
-                    Attack Target
-
-                </div>
-
-
-                <div class="legend-item">
-
-                    <span class="legend-line"></span>
-
-                    Attack Path
-
-                </div>
-
-            </div>
-
-        </section>
-
-
-        <!-- ================================
-             RECENT ATTACKS
-             ================================ -->
-
-        <section class="panel">
-
-            <div class="panel-header">
-
-                <h2>
-                    Recent Attacks
-                </h2>
-
-                <p>
-                    Top attack source → target pairs
-                </p>
-
-            </div>
-
-            <div id="attack-list"></div>
-
-        </section>
-
-    </main>
-
-
-    <!-- ================================
-         JAVASCRIPT
-         ================================ -->
-
-    <!-- Leaflet -->
-    <script
-        src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js">
-    </script>
-
-    <!-- Leaflet Polyline Decorator -->
-    <script
-        src="https://cdn.jsdelivr.net/npm/leaflet-polylinedecorator@1.6.0/dist/leaflet.polylineDecorator.js">
-    </script>
-
-    <!-- Dashboard -->
-    <script src="/static/js/dashboard.js"></script>
-
+  </nav>
+
+  <main class="dashboard">
+    <section class="dashboard-header">
+      <div>
+        <p class="eyebrow">CLOUDFLARE RADAR · LAYER 7</p>
+        <h1>Global Threat Overview</h1>
+        <p class="muted">Aggregated country-to-country attack activity, observed by Cloudflare Radar.</p>
+      </div>
+      <div class="dashboard-actions">
+        <div class="connection-state"><span id="status-dot" class="status-dot"></span><span id="connection-label">Connecting</span></div>
+        <div class="update-status">Last fetched <strong id="last-updated">—</strong></div>
+            <div class="update-status">Radar source timestamp <strong id="source-updated">Not provided</strong></div>
+        <button id="refresh-button" type="button">↻ Refresh now</button>
+      </div>
+    </section>
+
+    <div id="notice" class="notice" role="status">Connecting to the dashboard data service…</div>
+
+    <section class="stats" aria-label="Current statistics">
+      <article class="stat-card">
+        <div class="stat-label">SOURCE COUNTRIES</div>
+        <div class="stat-value" id="source-country-count">—</div>
+        <div class="stat-description">Ource countries</div>
+      </article>
+      <article class="stat-card">
+        <div class="stat-label">TARGET COUNTRIES</div>
+        <div class="stat-value" id="target-country-count">—</div>
+        <div class="stat-description">target countries</div>
+      </article>
+      <article class="stat-card">
+        <div class="stat-label">AGGREGATED RECORDS</div>
+        <div class="stat-value" id="attack-count">—</div>
+        <div class="stat-description">Total aggregated attack records</div>
+      </article>
+    </section>
+
+    <section class="panel">
+      <div class="panel-header panel-heading-row">
+        <div><h2>Global activity globe</h2><p>Animated country-level routes · drag to rotate · scroll to zoom</p></div>
+        <span class="live-chip"><span></span> LIVE UPDATES</span>
+      </div>
+      <div id="attack-map" aria-label="Interactive three-dimensional globe showing aggregated country-to-country activity">
+        <div class="globe-loading">Loading 3D globe…</div>
+      </div>
+      <div class="map-legend">
+        <span><i class="legend-source"></i>Source country</span>
+        <span><i class="legend-target"></i>Target country</span>
+        <span><i class="legend-line"></i>Aggregated route</span>
+      </div>
+      <p class="data-disclaimer">This is aggregated Radar data, not a packet-level feed. Not real-time.</p>
+    </section>
+
+    <section class="panel">
+      <div class="panel-header panel-heading-row">
+        <div><h2>Returned attack records</h2><p>Every valid source/target record returned by the endpoint.</p></div>
+        <span id="record-count-label" class="record-count">0 records</span>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Rank</th><th>Source</th><th></th><th>Target</th><th class="numeric">Share</th></tr></thead>
+          <tbody id="attack-list"><tr><td colspan="5" class="empty-state">Waiting for the first observation…</td></tr></tbody>
+        </table>
+      </div>
+    </section>
+    <footer class="footer">DDoS Intelligence <span>·</span> Data source: Cloudflare Radar API <span>·</span> Refresh interval <strong id="poll-interval">300 seconds</strong></footer>
+  </main>
+
+  <script src="{{ url_for('static', path='js/vendor/globe.gl.min.js') }}"></script>
+  <script src="/static/js/dashboard.js"></script>
 </body>
-
 </html>

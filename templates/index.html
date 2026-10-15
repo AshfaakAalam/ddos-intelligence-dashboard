@@ -1,12 +1,13 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-    <title>Login | DDoS Intelligence</title>
+    <title>Sign In | DDoS Intelligence</title>
 
-    <link rel="stylesheet" type="text/css" href="/static/css/style.css">
+    <link rel="stylesheet" href="/static/css/style.css">
 </head>
 
 <body>
@@ -15,6 +16,10 @@
 
         <div class="login-card">
 
+            <div class="login-logo">
+                ◈
+            </div>
+
             <h1>Welcome Back</h1>
 
             <p class="login-subtitle">
@@ -22,15 +27,18 @@
             </p>
 
             {% if error %}
-                    <div class="login-error">
-                        {{ error }}
-                    </div>
+                <div class="login-error">
+                    {{ error }}
+                </div>
             {% endif %}
 
             <form method="POST" action="/login">
 
                 <div class="form-group">
-                    <label for="username">Username</label>
+
+                    <label for="username">
+                        Username
+                    </label>
 
                     <input
                         type="text"
@@ -39,10 +47,15 @@
                         placeholder="Enter your username"
                         required
                     >
+
                 </div>
 
+
                 <div class="form-group">
-                    <label for="password">Password</label>
+
+                    <label for="password">
+                        Password
+                    </label>
 
                     <input
                         type="password"
@@ -51,37 +64,63 @@
                         placeholder="Enter your password"
                         required
                     >
+
                 </div>
+
 
                 <div class="login-options">
 
                     <label class="remember-me">
-                        <input type="checkbox" name="remember">
-                        Remember me
+
+                        <input
+                            type="checkbox"
+                            name="remember"
+                        >
+
+                        <span>Remember me</span>
+
                     </label>
 
-                    <a href="#">Forgot password?</a>
+
+                    <a href="#">
+                        Forgot password?
+                    </a>
 
                 </div>
 
-                <button type="submit" class="login-button">
+
+                <button
+                    type="submit"
+                    class="login-button"
+                >
                     Sign In
                 </button>
 
             </form>
 
+
             <div class="login-divider">
-                OR
+                <span>OR</span>
             </div>
 
+
             <p class="register-link">
+
                 Don't have an account?
-                <a href="/register">Create an account</a>
+
+                <a href="/register">
+                    Create an account
+                </a>
+
             </p>
 
+
             <div class="secure-login">
+
                 <span class="secure-dot"></span>
+
                 Secure authentication
+
             </div>
 
         </div>
@@ -89,4 +128,5 @@
     </main>
 
 </body>
+
 </html>

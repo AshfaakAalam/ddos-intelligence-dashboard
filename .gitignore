@@ -1,18 +1,23 @@
-# Environment variables
+# Secrets and local configuration
 .env
+.env.*
+!.env.example
 
-# Python virtual environment
+# Python
 .venv/
-
-# Python cache
 __pycache__/
-*.pyc
-*.pyo
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
 
-# IDE files
+# Local data / database
+ddos.db
+*.sqlite
+*.sqlite3
+
+# IDE / OS
 .vscode/
 .idea/
-
-# OS files
 .DS_Store
-ddos.db
+
+tests/

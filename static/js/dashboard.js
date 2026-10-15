@@ -1,828 +1,197 @@
-let attackMap;
+(() => {
+  "use strict";
 
+  const API_URL = "/api/attacks";
+  const WS_URL = `${location.protocol === "https:" ? "wss" : "ws"}://${location.host}/ws/attacks`;
+  const FALLBACK_REFRESH_MS = 60_000;
+  let globe = null;
+  let socket = null;
+  let fallbackTimer = null;
+  let lastPayloadSignature = "";
+  let socketHeartbeat = null;
+  let ringsByKey = new Map();
+  
+  const $ = (id) => document.getElementById(id);
+  const number = (value) => new Intl.NumberFormat().format(Number(value || 0));
+  const escapeHtml = (value) => String(value ?? "").replace(/[&<>"']/g, (char) => ({
+    "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;"
+  })[char]);
 
-async function loadAttackData() {
+  function setStatus(status, message) {
+    const dot = $("status-dot");
+    dot.className = `status-dot ${status === "live" ? "is-live" : status === "stale" ? "is-stale" : "is-error"}`;
+    $("connection-label").textContent = status === "live" ? "Data available" :
+      status === "stale" ? "Showing last saved data" :
+      status === "no_data" ? "No records returned" :
+      status === "error" ? "Data source unavailable" : "Connecting";
+    if (message) {
+      $("notice").textContent = message;
+      $("notice").classList.add("visible");
+    } else {
+      $("notice").classList.remove("visible");
+    }
+  }
 
+  function initGlobe() {
+    const container = $("attack-map");
+    if (typeof Globe !== "function") {
+      container.innerHTML = '<div class="globe-error">The 3D globe library could not load. Check your internet connection or CDN access.</div>';
+      return;
+    }
+    container.innerHTML = "";
+    globe = Globe()(container)
+      .backgroundColor("#080c11")
+      .globeImageUrl("https://unpkg.com/three-globe/example/img/earth-night.jpg")
+      .bumpImageUrl("https://unpkg.com/three-globe/example/img/earth-topology.png")
+      .showAtmosphere(true)
+      .atmosphereColor("#426b98")
+      .atmosphereAltitude(0.18)
+      .arcsData([])
+      .arcStartLat("startLat")
+      .arcStartLng("startLng")
+      .arcEndLat("endLat")
+      .arcEndLng("endLng")
+      .arcColor(() => ["rgba(255,65,85,0.9)", "rgba(255,176,0,0.9)"])
+      .arcStroke((d) => Math.max(0.25, Math.min(1.4, 0.3 + (Number(d.percentage) || 0) / 40)))
+      .arcAltitude((d) => d.sameCountry ? 0.01 : 0.22)
+      .arcDashLength(0.42)
+      .arcDashGap(0.22)
+      .arcDashAnimateTime(1600)
+      .pointsData([])
+      .pointLat("lat")
+      .pointLng("lng")
+      .pointColor("color")
+      .pointAltitude(0.012)
+      .pointRadius(0.22)
+      .pointResolution(8)
+      .pointLabel((d) => `${escapeHtml(d.country)} (${escapeHtml(d.role)})`);
+    globe.controls().autoRotate = true;
+    globe.controls().autoRotateSpeed = 0.22;
+    globe.controls().enableDamping = true;
+    const resize = () => {
+      if (globe) globe.width(container.clientWidth).height(Math.max(340, Math.min(600, container.clientWidth * 0.58)));
+    };
+    resize();
+    window.addEventListener("resize", resize);
+  }
+
+  function validCoordinate(lat, lng) {
+    return Number.isFinite(Number(lat)) && Number.isFinite(Number(lng)) &&
+      Math.abs(Number(lat)) <= 90 && Math.abs(Number(lng)) <= 180;
+  }
+
+  function updateGlobe(attacks) {
+    if (!globe) return;
+    const arcs = [];
+    const pointsByKey = new Map();
+    attacks.forEach((attack) => {
+      const startOk = validCoordinate(attack.source_latitude, attack.source_longitude);
+      const endOk = validCoordinate(attack.target_latitude, attack.target_longitude);
+      if (!startOk || !endOk) return;
+      const startLat = Number(attack.source_latitude), startLng = Number(attack.source_longitude);
+      const endLat = Number(attack.target_latitude), endLng = Number(attack.target_longitude);
+      const sameCountry = attack.source === attack.target;
+      arcs.push({ ...attack, startLat, startLng, endLat, endLng, sameCountry });
+          if (sameCountry) {
+            const ringKey = `${attack.source}:${startLat}:${startLng}`;
+            if (!ringsByKey.has(ringKey)) ringsByKey.set(ringKey, { lat: startLat, lng: startLng });
+          }
+      const sourceKey = `source:${attack.source || attack.source_country}`;
+      const targetKey = `target:${attack.target || attack.target_country}`;
+      if (!pointsByKey.has(sourceKey)) pointsByKey.set(sourceKey, {
+        lat: startLat, lng: startLng, country: attack.source_country, role: "source", color: "#ff4155"
+      });
+      if (!pointsByKey.has(targetKey)) pointsByKey.set(targetKey, {
+        lat: endLat, lng: endLng, country: attack.target_country, role: "target", color: "#ffb000"
+      });
+    });
+    globe.arcsData(arcs).pointsData(Array.from(pointsByKey.values())).ringsData(Array.from(ringsByKey.values()));
+  }
+
+  function updateTable(attacks) {
+    $("record-count-label").textContent = `${number(attacks.length)} record${attacks.length === 1 ? "" : "s"}`;
+    const body = $("attack-list");
+    if (!attacks.length) {
+      body.innerHTML = '<tr><td colspan="5" class="empty-state">No valid records were returned in the latest observation.</td></tr>';
+      return;
+    }
+    // Deliberately render the entire returned list; do not slice to top five.
+    body.innerHTML = attacks.map((attack, index) => `
+      <tr>
+        <td class="rank-cell">${escapeHtml(attack.rank ?? index + 1)}</td>
+        <td><span class="country-name">${escapeHtml(attack.source_country || attack.source || "Unknown")}</span><span class="country-code">${escapeHtml(attack.source || "")}</span></td>
+        <td class="route-arrow">→</td>
+        <td><span class="country-name">${escapeHtml(attack.target_country || attack.target || "Unknown")}</span><span class="country-code">${escapeHtml(attack.target || "")}</span></td>
+        <td class="numeric share-cell">${Number(attack.percentage || 0).toFixed(2)}%</td>
+      </tr>`).join("");
+  }
+
+  function renderPayload(data) {
+    if (!data || typeof data !== "object") return;
+    const attacks = Array.isArray(data.attacks) ? data.attacks : [];
+    $("source-country-count").textContent = number(data.source_country_count);
+    $("target-country-count").textContent = number(data.target_country_count);
+    $("attack-count").textContent = number(data.attack_count ?? attacks.length);
+    $("poll-interval").textContent = `${number(data.poll_interval_seconds || 300)} seconds`;
+    $("last-updated").textContent = data.last_updated ? new Date(data.last_updated).toLocaleString() : "Not yet fetched";
+        $("source-updated").textContent = data.source_timestamp ? String(data.source_timestamp) : "Not provided by endpoint";
+    updateTable(attacks);
+    updateGlobe(attacks);
+    const signature = `${data.last_updated || ""}:${attacks.length}:${data.status || ""}`;
+    if (signature !== lastPayloadSignature) {
+      lastPayloadSignature = signature;
+      // The globe's dash animation supplies motion between actual API observations.
+    }
+    const message = data.error
+      ? `Cloudflare data could not be refreshed: ${data.error}. ${attacks.length ? "The last saved observation is still displayed." : "Check API_TOKEN and connectivity in the server configuration."}`
+      : data.status === "no_data"
+        ? "The API request succeeded, but no valid country-level records were returned."
+        : "";
+    setStatus(data.status || "waiting", message);
+  }
+
+  async function loadAttackData(force = false) {
+    const button = $("refresh-button");
+    button.disabled = true;
+    button.textContent = "Refreshing…";
     try {
-
-        const response = await fetch("/api/attacks");
-
-        const data = await response.json();
-
-        console.log(
-            "DDoS data updated:",
-            data.last_updated
-        );
-
-
-        updateStatistics(data);
-
-        updateAttackList(data.attacks);
-
-        initializeMap(data.attacks);
-
+      const response = await fetch(`${API_URL}${force ? "?refresh=true" : ""}`, { headers: { "Accept": "application/json" } });
+      if (!response.ok) throw new Error(`Dashboard API returned HTTP ${response.status}`);
+      renderPayload(await response.json());
+    } catch (error) {
+      setStatus("error", `Could not load dashboard data: ${error.message}`);
+    } finally {
+      button.disabled = false;
+      button.textContent = "↻ Refresh now";
     }
+  }
 
-    catch (error) {
-
-        console.error(
-            "Failed to load attack data:",
-            error
-        );
-
+  function connectWebSocket() {
+    try {
+      socket = new WebSocket(WS_URL);
+      socket.addEventListener("open", () => {
+            if (fallbackTimer) { clearInterval(fallbackTimer); fallbackTimer = null; }
+            if (socketHeartbeat) clearInterval(socketHeartbeat);
+            socketHeartbeat = setInterval(() => {
+              if (socket && socket.readyState === WebSocket.OPEN) socket.send("ping");
+            }, 25000);
+          });
+          socket.addEventListener("message", (event) => {
+        try { renderPayload(JSON.parse(event.data)); } catch (error) { console.error("Invalid WebSocket payload", error); }
+      });
+      socket.addEventListener("close", () => {
+        if (fallbackTimer) clearInterval(fallbackTimer);
+        fallbackTimer = setInterval(() => loadAttackData(false), FALLBACK_REFRESH_MS);
+        setTimeout(connectWebSocket, 5000);
+      });
+      socket.addEventListener("error", () => socket.close());
+    } catch (error) {
+      fallbackTimer = setInterval(() => loadAttackData(false), FALLBACK_REFRESH_MS);
     }
-
-}
-
-
-function updateStatistics(data) {
-
-    document.getElementById(
-        "source-country-count"
-    ).textContent = data.source_country_count;
-
-
-    document.getElementById(
-        "target-country-count"
-    ).textContent = data.target_country_count;
-
-
-    document.getElementById(
-        "attack-count"
-    ).textContent = data.attacks.length;
-
-
-    const updatedTime =
-        new Date(data.last_updated);
-
-
-    document.getElementById(
-        "last-updated"
-    ).textContent =
-        updatedTime.toLocaleTimeString();
-
-}
-
-
-function updateAttackList(attacks) {
-
-    const attackList =
-        document.getElementById("attack-list");
-
-
-    attackList.innerHTML = "";
-
-
-    attacks.forEach(attack => {
-
-        const row =
-            document.createElement("div");
-
-
-        row.className = "attack-row";
-
-
-        row.innerHTML = `
-
-            <span class="attack-rank">
-                #${attack.rank}
-            </span>
-
-            <span class="attack-country">
-                ${attack.source_country}
-            </span>
-
-            <span class="attack-arrow">
-                →
-            </span>
-
-            <span class="attack-country">
-                ${attack.target_country}
-            </span>
-
-            <span class="attack-percentage">
-                ${attack.percentage.toFixed(2)}%
-            </span>
-
-        `;
-
-
-        /*
-            Click attack row
-        */
-
-        row.addEventListener(
-            "click",
-            function () {
-
-                focusAttack(attack);
-
-            }
-        );
-
-
-        attackList.appendChild(row);
-
-    });
-
-}
-
-function focusAttack(attack) {
-
-    const sourceCoordinates = [
-
-        Number(attack.source_latitude),
-
-        Number(attack.source_longitude)
-
-    ];
-
-
-    const targetCoordinates = [
-
-        Number(attack.target_latitude),
-
-        Number(attack.target_longitude)
-
-    ];
-
-
-    /*
-        Invalid coordinates
-    */
-
-    if (
-
-        !Number.isFinite(sourceCoordinates[0]) ||
-
-        !Number.isFinite(sourceCoordinates[1]) ||
-
-        !Number.isFinite(targetCoordinates[0]) ||
-
-        !Number.isFinite(targetCoordinates[1])
-
-    ) {
-
-        return;
-
-    }
-
-
-    /*
-        Same source and target
-    */
-
-    if (
-
-        sourceCoordinates[0] ===
-        targetCoordinates[0]
-
-        &&
-
-        sourceCoordinates[1] ===
-        targetCoordinates[1]
-
-    ) {
-
-        attackMap.flyTo(
-            sourceCoordinates,
-            5,
-            {
-                duration: 1
-            }
-        );
-
-        return;
-
-    }
-
-
-    /*
-        Calculate attack curve
-    */
-
-    const curvePoints =
-        createAttackCurve(
-            sourceCoordinates,
-            targetCoordinates
-        );
-
-
-    /*
-        Zoom to the attack
-    */
-
-    attackMap.fitBounds(
-        curvePoints,
-        {
-            padding: [80, 80],
-            maxZoom: 5,
-            duration: 1
-        }
-    );
-
-}
-
-
-function initializeMap(attacks) {
-
-    /*
-        Remove previous map
-    */
-
-    if (attackMap) {
-
-        attackMap.remove();
-
-    }
-
-
-    /*
-        Create Leaflet map
-    */
-
-    attackMap = L.map("attack-map").setView(
-        [20, 0],
-        2
-    );
-
-
-    /*
-        OpenStreetMap tiles
-
-        This is the same tile source
-        that was working previously.
-    */
-
-    L.tileLayer(
-        "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
-        {
-            attribution:
-                "&copy; OpenStreetMap contributors"
-        }
-    ).addTo(attackMap);
-
-
-    const mapBounds = [];
-
-
-    attacks.forEach(attack => {
-
-        /*
-            Convert coordinates to numbers
-        */
-
-        const sourceCoordinates = [
-
-            Number(attack.source_latitude),
-
-            Number(attack.source_longitude)
-
-        ];
-
-
-        const targetCoordinates = [
-
-            Number(attack.target_latitude),
-
-            Number(attack.target_longitude)
-
-        ];
-
-
-        /*
-            Make sure coordinates are valid
-        */
-
-        if (
-
-            !Number.isFinite(
-                sourceCoordinates[0]
-            ) ||
-
-            !Number.isFinite(
-                sourceCoordinates[1]
-            ) ||
-
-            !Number.isFinite(
-                targetCoordinates[0]
-            ) ||
-
-            !Number.isFinite(
-                targetCoordinates[1]
-            )
-
-        ) {
-
-            console.warn(
-                "Invalid coordinates:",
-                attack
-            );
-
-            return;
-
-        }
-
-
-        /*
-            SOURCE MARKER
-        */
-
-        L.circleMarker(
-            sourceCoordinates,
-            {
-                radius: 6,
-
-                weight: 2,
-
-                fillOpacity: 0.9
-            }
-        )
-        .addTo(attackMap)
-        .bindPopup(`
-
-            <strong>
-                Attack Source
-            </strong>
-
-            <br><br>
-
-            Country:
-            ${attack.source_country}
-
-            <br>
-
-            Code:
-            ${attack.source}
-
-        `);
-
-
-        /*
-            TARGET MARKER
-        */
-
-        L.circleMarker(
-            targetCoordinates,
-            {
-                radius: 8,
-
-                weight: 2,
-
-                fillOpacity: 0.9
-            }
-        )
-        .addTo(attackMap)
-        .bindPopup(`
-
-            <strong>
-                Attack Target
-            </strong>
-
-            <br><br>
-
-            Country:
-            ${attack.target_country}
-
-            <br>
-
-            Code:
-            ${attack.target}
-
-        `);
-
-
-            /*
-                Don't draw a line when
-                source and target are identical.
-
-                Example:
-
-                US → US
-            */
-
-            if (
-
-        sourceCoordinates[0] ===
-        targetCoordinates[0]
-
-        &&
-
-        sourceCoordinates[1] ===
-        targetCoordinates[1]
-
-    ) {
-
-        L.circle(
-            sourceCoordinates,
-            {
-                radius: 250000,
-
-                weight: 2,
-
-                opacity: 0.8,
-
-                fillOpacity: 0.08
-            }
-        )
-        .addTo(attackMap)
-        .bindPopup(`
-
-            <strong>
-                ${attack.source_country}
-                →
-                ${attack.target_country}
-            </strong>
-
-            <br><br>
-
-            Attack Share:
-            ${attack.percentage.toFixed(2)}%
-
-            <br>
-
-            Rank:
-            #${attack.rank}
-
-        `);
-
-
-        mapBounds.push(
-            sourceCoordinates
-        );
-
-        return;
-
-    }
-
-
-        /*
-            Create curved attack path
-        */
-
-        const curvePoints =
-            createAttackCurve(
-                sourceCoordinates,
-                targetCoordinates
-            );
-
-
-        /*
-            Make stronger attacks
-            visually thicker.
-        */
-
-        const lineWeight =
-            Math.max(
-                2,
-                Math.min(
-                    7,
-                    attack.percentage / 2
-                )
-            );
-
-
-        /*
-            ATTACK PATH
-        */
-
-        const attackArc = L.polyline(
-    curvePoints,
-    {
-        weight: lineWeight,
-        opacity: 0.85,
-        color: "#ff3131",
-        smoothFactor: 1,
-        className: "attack-arc"
-    }
-)
-.addTo(attackMap);
-
-
-/*
-    Arrow showing attack direction
-*/
-
-L.polylineDecorator(
-    attackArc,
-    {
-        patterns: [
-            {
-                offset: "75%",
-                repeat: 0,
-
-                symbol: L.Symbol.arrowHead(
-                    {
-                        pixelSize: 14,
-
-                        polygon: true,
-
-                        pathOptions: {
-                            stroke: false,
-                            fill: true,
-                            fillOpacity: 1,
-                            color: "#ff3131"
-                        }
-                    }
-                )
-            }
-        ]
-    }
-).addTo(attackMap);
-
-
-/*
-    Popup on attack arc
-*/
-
-attackArc.bindPopup(`
-
-    <div class="attack-popup">
-
-        <div class="popup-title">
-            DDOS ATTACK
-        </div>
-
-        <div class="popup-route">
-
-            ${attack.source_country}
-
-            <span>→</span>
-
-            ${attack.target_country}
-
-        </div>
-
-        <div class="popup-info">
-
-            <div>
-                Attack Share
-                <strong>
-                    ${attack.percentage.toFixed(2)}%
-                </strong>
-            </div>
-
-            <div>
-                Rank
-                <strong>
-                    #${attack.rank}
-                </strong>
-            </div>
-
-        </div>
-
-    </div>
-
-`);
-        
-
-        /*
-            Add coordinates to bounds
-        */
-
-        mapBounds.push(
-            sourceCoordinates
-        );
-
-        mapBounds.push(
-            targetCoordinates
-        );
-
-    });
-
-
-    /*
-        Automatically zoom to
-        all attack locations.
-    */
-
-    if (mapBounds.length > 0) {
-
-        attackMap.fitBounds(
-            mapBounds,
-            {
-                padding: [40, 40]
-            }
-        );
-
-    }
-
-}
-
-
-/*
-    Create a curved path between
-    source and target.
-*/
-
-function createAttackCurve(
-    sourceCoordinates,
-    targetCoordinates
-) {
-
-    const sourceLatitude =
-        sourceCoordinates[0];
-
-    const sourceLongitude =
-        sourceCoordinates[1];
-
-
-    const targetLatitude =
-        targetCoordinates[0];
-
-    const targetLongitude =
-        targetCoordinates[1];
-
-
-    /*
-        Calculate midpoint
-    */
-
-    const middleLatitude =
-        (
-            sourceLatitude +
-            targetLatitude
-        ) / 2;
-
-
-    const middleLongitude =
-        (
-            sourceLongitude +
-            targetLongitude
-        ) / 2;
-
-
-    /*
-        Calculate distance
-    */
-
-    const latitudeDifference =
-        targetLatitude -
-        sourceLatitude;
-
-
-    const longitudeDifference =
-        targetLongitude -
-        sourceLongitude;
-
-
-    const distance =
-        Math.sqrt(
-            Math.pow(
-                latitudeDifference,
-                2
-            )
-            +
-            Math.pow(
-                longitudeDifference,
-                2
-            )
-        );
-
-
-    /*
-        Prevent division by zero
-    */
-
-    if (distance === 0) {
-
-        return [
-            sourceCoordinates,
-            targetCoordinates
-        ];
-
-    }
-
-
-    /*
-        Determine curve height
-    */
-
-    const curveHeight =
-        Math.min(
-            distance * 0.25,
-            35
-        );
-
-
-    /*
-        Perpendicular direction
-    */
-
-    const perpendicularLatitude =
-        -longitudeDifference /
-        distance;
-
-
-    const perpendicularLongitude =
-        latitudeDifference /
-        distance;
-
-
-    /*
-        Bezier control point
-    */
-
-    const controlPoint = [
-
-        middleLatitude +
-        perpendicularLatitude *
-        curveHeight,
-
-        middleLongitude +
-        perpendicularLongitude *
-        curveHeight
-
-    ];
-
-
-    /*
-        Generate curve points
-    */
-
-    const curvePoints = [];
-
-    const numberOfPoints = 50;
-
-
-    for (
-        let index = 0;
-        index <= numberOfPoints;
-        index++
-    ) {
-
-        const t =
-            index /
-            numberOfPoints;
-
-
-        const oneMinusT =
-            1 - t;
-
-
-        const latitude =
-
-            Math.pow(
-                oneMinusT,
-                2
-            ) *
-            sourceLatitude
-
-            +
-
-            2 *
-            oneMinusT *
-            t *
-            controlPoint[0]
-
-            +
-
-            Math.pow(
-                t,
-                2
-            ) *
-            targetLatitude;
-
-
-        const longitude =
-
-            Math.pow(
-                oneMinusT,
-                2
-            ) *
-            sourceLongitude
-
-            +
-
-            2 *
-            oneMinusT *
-            t *
-            controlPoint[1]
-
-            +
-
-            Math.pow(
-                t,
-                2
-            ) *
-            targetLongitude;
-
-
-        curvePoints.push([
-            latitude,
-            longitude
-        ]);
-
-    }
-
-
-    return curvePoints;
-
-}
-
-loadAttackData();
-
-setInterval(
-    loadAttackData,
-    30 * 1000
-);
+  }
+
+  $("refresh-button").addEventListener("click", () => loadAttackData(true));
+  initGlobe();
+  loadAttackData(false);
+  connectWebSocket();
+})();

@@ -1,39 +1,46 @@
+"""Normalize Cloudflare Radar's aggregated country-to-country ranking data."""
 from country_coordinates import load_country_coordinates
 
-country_coordinates = load_country_coordinates()
+COUNTRY_COORDINATES = load_country_coordinates()
+
+
+def _extract_records(data):
+    result = data.get("result") or {}
+    # Cloudflare's top-attacks response uses top_0 for the ranked list.
+    # Iterate the entire returned list; never truncate to an arbitrary top five.
+    records = result.get("top_0")
+    if isinstance(records, list):
+        return records
+    # Be tolerant of API response variants where result itself is a list.
+    if isinstance(result, list):
+        return result
+    return []
 
 
 def process_attack_data(data):
-    """
-    Processes the attack data and returns a list of dictionaries containing
-    source country, target country, percentage of attacks, and coordinates.
-    """
-
-    attacks = data['result']['top_0']
-    processed_data = []
-
-    for attack in attacks:
-
-        source_code = attack['originCountryAlpha2']
-        target_code = attack['targetCountryAlpha2']
-
-        source_coordinates = country_coordinates.get(source_code)
-        target_coordinates = country_coordinates.get(target_code)
-
-        processed_data.append({
-            'source': source_code,
-            'source_country': attack['originCountryName'],
-            'source_latitude': source_coordinates['latitude'] if source_coordinates else None,
-            'source_longitude': source_coordinates['longitude'] if source_coordinates else None,
-
-            'target': target_code,
-            'target_country': attack['targetCountryName'],
-            'target_latitude': target_coordinates['latitude'] if target_coordinates else None,
-            'target_longitude': target_coordinates['longitude'] if target_coordinates else None,
-
-            'percentage': float(attack['value']),
-            'rank': attack['rank']
+    """Return every valid ranked record, enriched with country centroids."""
+    processed = []
+    for index, attack in enumerate(_extract_records(data), start=1):
+        if not isinstance(attack, dict):
+            continue
+        source_code = str(attack.get("originCountryAlpha2") or "").upper()
+        target_code = str(attack.get("targetCountryAlpha2") or "").upper()
+        source_info = COUNTRY_COORDINATES.get(source_code, {})
+        target_info = COUNTRY_COORDINATES.get(target_code, {})
+        try:
+            percentage = float(attack.get("value", 0))
+        except (TypeError, ValueError):
+            continue
+        processed.append({
+            "source": source_code,
+            "source_country": attack.get("originCountryName") or source_info.get("country_name") or source_code or "Unknown",
+            "source_latitude": source_info.get("latitude"),
+            "source_longitude": source_info.get("longitude"),
+            "target": target_code,
+            "target_country": attack.get("targetCountryName") or target_info.get("country_name") or target_code or "Unknown",
+            "target_latitude": target_info.get("latitude"),
+            "target_longitude": target_info.get("longitude"),
+            "percentage": percentage,
+            "rank": attack.get("rank", index),
         })
-
-    return processed_data
-
+    return processed
