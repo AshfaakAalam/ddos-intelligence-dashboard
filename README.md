@@ -28,8 +28,6 @@ Start the server from this directory:
 uvicorn main:app --host 127.0.0.1 --port 8000
 ```
 
-Open <http://127.0.0.1:8000>, register an account, then sign in. For access from another machine on a trusted network, use `--host 0.0.0.0`; do not expose the development server directly to the public internet.
-
 ## Data flow
 1. FastAPI polls Cloudflare Radar on startup and then every `POLL_INTERVAL_SECONDS` (default 300; minimum 60).
 2. Successful observations are stored in `ddos.db` in the `attack_snapshots` table.
@@ -43,16 +41,6 @@ Open <http://127.0.0.1:8000>, register an account, then sign in. For access from
 - `GET /api/attacks?refresh=true` — manually request an upstream refresh
 - `WS /ws/attacks` — authenticated live updates
 
-## Security notes
-- Passwords are hashed; they are never stored in plaintext.
-- Use a unique `SESSION_SECRET`, HTTPS, and `COOKIE_SECURE=true` in production.
-- Keep `.env`, the SQLite database, virtual environments, and Python cache out of version control.
-- SQLite is suitable for this local MVP. For multi-worker/production deployments, use PostgreSQL and a dedicated background worker so only one poller runs across processes.
 
-## Testing
-Run:
 
-```bash
-pip install -r requirements.txt
-python -m unittest discover -s tests -v
-```
+
